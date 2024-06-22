@@ -1,6 +1,7 @@
 import typing
 
 import psycopg
+import psycopg.sql as sql
 
 
 def conn():
@@ -24,3 +25,16 @@ def fetch_all_authorities(conn, batch_size: int) -> typing.Iterator[tuple[str, s
 
         return
         yield
+
+
+def save_authority_tokens(conn, authority_uuid: str, tokens: list[str]) -> None:
+    placeholders = sql.SQL(', ').join(sql.Placeholder() * 2)
+    query = sql.SQL(
+        """
+        INSERT INTO loc_authority_tools.loc_person_authority_label_token (authority_uuid, token)
+        VALUES ({placeholders})
+        ON CONFLICT (authority_uuid, token) DO NOTHING;
+        """,
+    ).format(placeholders=placeholders)
+    with conn.cursor() as cursor:
+        cursor.executemany(query, [(authority_uuid, token) for token in tokens])
