@@ -12,7 +12,7 @@ app = flask.Flask(__name__)
 @app.route("/author-match", methods=['GET'])
 def author_match():
     author_to_match = flask.request.args.get("author")
-    if not author:
+    if not author_to_match:
         return (400, {"error": {"msg": "Must supply author parameter"}})
 
     best_match = find_match(author_to_match)
@@ -25,31 +25,49 @@ def author_match():
 def find_match(name: str) -> str | None:
     name_tokens = tokenizer.tokenize_name(name)
     with db.conn() as conn:
-        choices = conn.execute(
-            """
-            SELECT p.authoritative_label, ARRAY_AGG(t.token) AS tokens
-            FROM loc_authority_tools.loc_person_authority_label_token AS t
-            JOIN loc_authority_tools.loc_person_authority AS p
-            ON t.authority_uuid = p.uuid
-            WHERE
-              t.token IN (%s)
-            GROUP BY 1
-            """,
-            name_tokens,
-        ).fetchall()
+        choices = db.match_authorities_by_tokens(conn, name_tokens)
 
     name_tokens = set(name_tokens)
-    choices = []
-    for loc_name, loc_tokens in choices:
-        if loc_name == name:
-            return loc_name
+    exact = []
+    fuzzy_candidates = []
+    for authority, loc_tokens in choices:
         loc_tokens = set(loc_tokens)
-        if loc_tokens == name_tokens:
-            return loc_name
+        if authority.authoritative_label == name:
+            exact.append(_match(authority, 100))
+        elif loc_tokens == name_tokens and len(loc_tokens) > 1:
+            exact.append(_match(authority, 99))
+        else:
+            fuzzy_candidates.append(authority)
 
-        choices.append(loc_name)
+    fuzzy_matches = []
+    if fuzzy_candidates:
+        fuzzy_matches = do_fuzzy_match(name, fuzzy_candidates)
 
-    if not choices:
-        return None
-    results = thefuzz.process.extract(name, choices, scorer=thefuzz.fuzz.token_sort_ratio)
-    return sorted(results, key=lambda tup: tup[1], reverse=True)[0]
+    # TODO: Figure out why we have duplicates
+    return [*exact, *fuzzy_matches]
+
+
+def do_fuzzy_match(name: str, authorities: list[db.LOCPersonAuthority]) -> list[dict]:
+    authorities_by_label = {}
+    choices = []
+    for a in authorities:
+        authorities_by_label[a.authoritative_label] = a
+        choices.append(a.authoritative_label)
+
+    match_results = thefuzz.process.extract(name, choices, scorer=thefuzz.fuzz.token_sort_ratio)
+    results = []
+    for match_name, score in match_results:
+        if score < 75:
+            continue
+        results.append(_match(authorities_by_label[match_name], score))
+
+    return results
+
+
+def _match(authority: db.LOCPersonAuthority, confidence: int) -> dict:
+    return {
+        "uuid": authority.uuid,
+        "label": authority.authoritative_label,
+        "loc_url": authority.loc_url,
+        "confidence": confidence,
+    }
