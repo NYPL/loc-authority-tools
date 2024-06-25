@@ -9,6 +9,17 @@ import loc_authority_tools.tokenizer as tokenizer
 app = flask.Flask(__name__)
 
 
+@app.route("/authors/<uuid>", methods=['GET'])
+def get_author(uuid: str):
+    with db.conn() as conn:
+        try:
+            author = db.get_authority_by_uuid(conn, uuid)
+        except ValueError:
+            return (404, {"data": {"error": {"msg": "Not Found"}}})
+
+    return {"data": {"author": author.json()}}
+
+
 @app.route("/author-match", methods=['GET'])
 def author_match():
     author_to_match = flask.request.args.get("author")

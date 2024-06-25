@@ -35,6 +35,9 @@ class LOCPersonAuthority:
     loc_url: str
     authoritative_label: str
 
+    def json(self) -> dict:
+        return dataclasses.asdict(self)
+
 
 def match_authorities_by_tokens(conn, tokens: list[str]) -> list[tuple[LOCPersonAuthority, list[str]]]:
     results = conn.execute(
@@ -60,6 +63,25 @@ def match_authorities_by_tokens(conn, tokens: list[str]) -> list[tuple[LOCPerson
         authorities.append((authority, tokens))
 
     return authorities
+
+
+def get_authority_by_uuid(conn, uuid: str) -> LOCPersonAuthority:
+    record = conn.execute(
+        """
+        SELECT
+          uuid,
+          record_source,
+          loc_url,
+          authoritative_label
+        FROM loc_authority_tools.loc_person_authority
+        WHERE uuid = %s
+        """,
+        (uuid,),
+    ).fetchone()
+    if not record:
+        raise ValueError()
+
+    return LOCPersonAuthority(*record)
 
 
 def save_authority_tokens(conn, authority_uuid: str, tokens: list[str]) -> None:
