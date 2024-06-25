@@ -26,14 +26,12 @@ def author_match():
     if not author_to_match:
         return (400, {"error": {"msg": "Must supply author parameter"}})
 
-    best_match = find_match(author_to_match)
-    if not best_match:
-        return {"data": {"msg": "No matching author found"}}
+    matches = find_match(author_to_match)
 
-    return {"data": {"match": best_match}}
+    return {"data": {"match": matches}}
 
 
-def find_match(name: str) -> str | None:
+def find_match(name: str) -> list[dict]:
     name_tokens = tokenizer.tokenize_name(name)
     with db.conn() as conn:
         choices = db.match_authorities_by_tokens(conn, name_tokens)
