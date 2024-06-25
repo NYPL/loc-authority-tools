@@ -40,11 +40,8 @@ def find_match(name: str) -> list[dict]:
     exact = []
     fuzzy_candidates = []
     for authority, loc_tokens in choices:
-        loc_tokens = set(loc_tokens)
         if authority.authoritative_label == name:
             exact.append(_match(authority, 100))
-        elif loc_tokens == name_tokens and len(loc_tokens) > 1:
-            exact.append(_match(authority, 99))
         else:
             fuzzy_candidates.append(authority)
 
