@@ -1,6 +1,6 @@
 # LOC Authority Tools
 A common issue with matching works from different sources / publishers is the integrity of the data. An author name
-from one source may come in as 'Toni Morrison', while another has 'Morisson, Toni', or 'Morrison, Toni, 1931-2019',
+from one source may come in as 'Toni Morrison', while another has 'Morrison, Toni', or 'Morrison, Toni, 1931-2019',
 or a myriad of other inputs. The goal of this project is to provide a simple proof of concept service to make resolving such
 discrepancies easier. The final product of this is a webservice that lets you query by an author name that you have and returns
 a set of potential matching 'established' names. The 'established' part of this is based on the Library of Congress [Name
