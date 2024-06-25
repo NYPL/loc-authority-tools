@@ -40,6 +40,8 @@ class LOCPersonAuthority:
 
 
 def match_authorities_by_tokens(conn, tokens: list[str]) -> list[tuple[LOCPersonAuthority, list[str]]]:
+    if not tokens:
+        return []
     results = conn.execute(
         """
         SELECT
