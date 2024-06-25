@@ -14,6 +14,10 @@ The general idea is as follows:
   4. Provide a webservice that uses these tokens as a quick filter before using fuzzy matching to provide a set of potentially
      matching names
 
+Note, this is very much a proof-of-concept, and not a production-ready app. There are a number of obvious bugs here, and this
+app misses out on some very basic things like connection pooling.  There is also some further learning to do in terms of
+processing these authority files from the Library of Congress, and this is simply a first stab at that.
+
 ## Getting Started
 This whole thing is a set of Python scripts and a very simple local webserver all running Python and managed by poetry.
 
@@ -25,11 +29,12 @@ This whole thing is a set of Python scripts and a very simple local webserver al
   3. Run `docker compose up` to spin up the local database
   4. Run `poetry run python loc_authority_tools/seed_db.py` to create the DB tables
   5. Run `poetry run python loc_authority_tools/full_download.py` to download and unzip the LOC authority file
-  6. Run `poetry run python loc_authority_tools/tokenize_names.py` to ingest all author names and tokenize them
+  6. Run `poetry run python loc_authority_tools/ingest_loc_names.py` to ingest the file into a local DB
+  7. Run `poetry run python loc_authority_tools/tokenize_names.py` to ingest all author names and tokenize them
      for author matching
        - Note, this will take a long time (around 10 hours). A TODO is to add a `limit` param to the script
          OR to provide a dump of the data in S3
-  7. Run `poetry run flask --app loc_authority_tools.app:app run` to start the webserver
+  8. Run `poetry run flask --app loc_authority_tools.app:app run` to start the webserver
 
 ## Endpoints
 
