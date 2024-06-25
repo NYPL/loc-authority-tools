@@ -4,6 +4,7 @@ import thefuzz.process
 
 import loc_authority_tools.db as db
 import loc_authority_tools.tokenizer as tokenizer
+import loc_authority_tools.works_lookup as works_lookup
 
 
 app = flask.Flask(__name__)
@@ -18,6 +19,46 @@ def get_author(uuid: str):
             return (404, {"data": {"error": {"msg": "Not Found"}}})
 
     return {"data": {"author": author.json()}}
+
+
+@app.route("/authors/<uuid>/title-match", methods=['GET'])
+def match_title_for_author(uuid: str):
+    title_to_match = flask.request.args.get("title")
+    if not title_to_match:
+        return (400, {"error": {"msg": "Must supply title parameter"}})
+    with db.conn() as conn:
+        try:
+            author = db.get_authority_by_uuid(conn, uuid)
+        except ValueError:
+            return (404, {"data": {"error": {"msg": "Not Found"}}})
+
+    session = works_lookup.new_session()
+    contributed_works = works_lookup.fetch_works_contributed_to(session, author.loc_url)
+    title_choices = {
+        works_lookup.fetch_work_bibframe_title(session, work.uri)
+        for work in contributed_works
+    }
+    if None in title_choices:
+        title_choices.remove(None)
+
+    if title_to_match in title_choices:
+        return {"data": {"match": [_title_match(title_to_match, 100)]}}
+
+    match_results = thefuzz.process.extract(title_to_match, title_choices, scorer=thefuzz.fuzz.token_sort_ratio)
+    results = []
+    for match_name, score in match_results:
+        if score < 75:
+            continue
+        results.append(_title_match(match_name, score))
+
+    return {"data": {"match": results}}
+
+
+def _title_match(title: str, confidence: int) -> dict:
+    return {
+        "title": title,
+        "confidence": confidence,
+    }
 
 
 @app.route("/author-match", methods=['GET'])
