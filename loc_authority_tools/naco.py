@@ -4,7 +4,7 @@ from unidecode import unidecode
 
 
 # Characters that should be mapped differently from unidecode
-non_unidecode_map = {
+NON_UNIDECODE_MAP = {
     # Translated Characters
     ord("\u0391"): "\u0391",  # alpha
     ord("\u03b1"): "\u0391",
@@ -38,7 +38,6 @@ non_unidecode_map = {
     ord("\u266d"): "\u266d",  # musical flat
     ord("/"): " ",
     ord("\\"): " ",
-    ord("$"): " ",
     ord("%"): " ",
     ord("*"): " ",
     ord("|"): " ",
@@ -107,10 +106,8 @@ def normalize(input_str):
     # to be retained, so go character by chacter instead.
     output_str = ""
     for char in input_str:
-        if ord(char) not in non_unidecode_map:
+        if ord(char) not in NON_UNIDECODE_MAP:
             char = unidecode(char)
-        if ord(char) in non_unidecode_map:
-            char = non_unidecode_map[ord(char)]
-        output_str += char
+        output_str += NON_UNIDECODE_MAP.get(ord(char), char)
 
     return re.sub(" +", " ", output_str).strip().upper()
